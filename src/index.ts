@@ -208,4 +208,8 @@ app.all("*", async (c) => {
     return c.text("Internal Server Error", 500);
   }
 });
-export default app;
+
+export default {
+  port: 3001,
+  fetch: app.fetch,
+};
