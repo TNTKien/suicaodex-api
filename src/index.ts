@@ -4,7 +4,7 @@ import { serveStatic } from "hono/bun";
 import axios from "axios";
 import sharp = require("sharp");
 
-sharp.concurrency(2);
+sharp.concurrency(1);
 
 // sharp.cache(false);
 
