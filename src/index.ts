@@ -133,15 +133,14 @@ app.get("/images/:id/:index", async (c) => {
     });
 
     // Chuyển đổi ảnh sang WebP qua stream
-    const transformStream = sharp().webp({ quality: 85 });
+    //const transformStream = sharp().webp({ quality: 85 });
 
     c.header("Content-Type", "image/webp");
     c.header("Access-Control-Allow-Origin", "*");
     c.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
     c.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
-    // Pipe dữ liệu ảnh qua `sharp` và gửi trực tiếp response
-    return new Response(response.data.pipe(transformStream), { status: 200 });
+    return new Response(response.data, { status: 200 });
   } catch (error) {
     console.error(error);
     return c.text("Internal Server Error", 500);
