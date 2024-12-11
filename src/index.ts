@@ -4,7 +4,7 @@ import { serveStatic } from "hono/bun";
 import axios from "axios";
 import sharp = require("sharp");
 
-sharp.cache(false);
+// sharp.cache(false);
 
 const app = new Hono();
 
