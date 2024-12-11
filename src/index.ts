@@ -4,6 +4,8 @@ import { serveStatic } from "hono/bun";
 import axios from "axios";
 import sharp = require("sharp");
 
+sharp.concurrency(2);
+
 // sharp.cache(false);
 
 const app = new Hono();
@@ -131,7 +133,7 @@ app.get("/images/:id/:index", async (c) => {
     });
 
     // Chuyển đổi ảnh sang WebP qua stream
-    const transformStream = sharp().webp(); // Tạo transform stream để chuyển đổi WebP
+    const transformStream = sharp().webp({ quality: 85 });
 
     c.header("Content-Type", "image/webp");
     c.header("Access-Control-Allow-Origin", "*");
@@ -158,7 +160,7 @@ app.get("/covers/:manga-id/:cover-filename", async (c) => {
     });
 
     // Chuyển đổi ảnh sang WebP qua stream
-    const transformStream = sharp().webp();
+    const transformStream = sharp().webp({ quality: 85 });
 
     c.header("Content-Type", "image/webp");
     c.header("Access-Control-Allow-Origin", "*");
