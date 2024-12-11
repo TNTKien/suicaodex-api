@@ -4,6 +4,8 @@ import { serveStatic } from "hono/bun";
 import axios from "axios";
 import sharp = require("sharp");
 
+sharp.cache(false);
+
 const app = new Hono();
 
 const API_BASE_URL = "https://api.mangadex.org";
@@ -156,7 +158,7 @@ app.get("/covers/:manga-id/:cover-filename", async (c) => {
     });
 
     // Chuyển đổi ảnh sang WebP qua stream
-    const transformStream = sharp().webp(); // Tạo transform stream để chuyển đổi WebP
+    const transformStream = sharp().webp();
 
     c.header("Content-Type", "image/webp");
     c.header("Access-Control-Allow-Origin", "*");
