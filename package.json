@@ -2,7 +2,8 @@
   "name": "suicaodex-api",
   "scripts": {
     "dev": "bun run --hot src/index.ts",
-    "start": "pm2 start pm2.config.js"
+    "start": "pm2 start pm2.config.js",
+    "build": "tsc"
   },
   "dependencies": {
     "@hono/node-server": "^1.13.8",
@@ -12,5 +13,6 @@
   },
   "devDependencies": {
     "@types/bun": "latest"
-  }
+  },
+  "type": "module"
 }
