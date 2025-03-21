@@ -5,6 +5,7 @@
     "start": "pm2 start pm2.config.js"
   },
   "dependencies": {
+    "@hono/node-server": "^1.13.8",
     "axios": "^1.7.9",
     "hono": "^4.6.13",
     "sharp": "^0.33.5"

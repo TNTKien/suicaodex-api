@@ -1,5 +1,6 @@
 import { Hono } from "hono";
-import { serveStatic } from "hono/bun";
+import { serve } from '@hono/node-server';
+import { serveStatic } from '@hono/node-server/serve-static'
 import axios from "axios";
 import sharp = require("sharp");
 
@@ -309,7 +310,7 @@ app.all("*", async (c) => {
   }
 });
 
-export default {
-  port: 3000, // change port if needed
+serve({
   fetch: app.fetch,
-};
+  port: 3000,
+});
