@@ -1,3 +1,5 @@
+> NodeJS sus, if you can't build or deploy, check [this](https://hono.dev/docs/getting-started/nodejs/). 
+
 ```
 npm install
 npm run dev
