@@ -1,4 +1,4 @@
-import { Hono } from 'hono'
+import { Hono } from "hono";
 
 import axios from "axios";
 // import { serveStatic } from 'hono/cloudflare-workers';
@@ -156,13 +156,13 @@ app.get("/images/:id/:index", async (c) => {
     const cachedImage = cache.getImage(cacheKey);
     if (cachedImage) {
       const contentType = cachedImage.contentType || "image/jpeg";
-      return new Response(cachedImage.data, { 
+      return new Response(cachedImage.data, {
         status: 200,
         headers: {
           "Content-Type": contentType,
           "Content-Disposition": "inline",
-          "Cache-Control": "public, max-age=3600"
-        }
+          "Cache-Control": "public, max-age=3600",
+        },
       });
     }
 
@@ -178,28 +178,37 @@ app.get("/images/:id/:index", async (c) => {
       timeout: 15000,
       headers: {
         "User-Agent": c.req.header("User-Agent") || "SuicaoDex/1.0",
-        "Referer": "https://mangadex.org/"
+        Referer: "https://mangadex.org/",
       },
     });
 
     // Xác định content type dựa vào URL hoặc header từ response
-    const contentType = response.headers['content-type'] || 
-                        (imageUrl.endsWith('.png') ? 'image/png' : 
-                         imageUrl.endsWith('.webp') ? 'image/webp' : 'image/jpeg');
-    
+    const contentType =
+      response.headers["content-type"] ||
+      (imageUrl.endsWith(".png")
+        ? "image/png"
+        : imageUrl.endsWith(".webp")
+        ? "image/webp"
+        : "image/jpeg");
+
     // Lưu vào cache cả data và content type
     cache.setImage(cacheKey, {
       data: response.data,
-      contentType: contentType
+      contentType: contentType,
     });
-    
-    return new Response(response.data, { 
+
+    c.header("Content-Type", "image/webp");
+    c.header("Access-Control-Allow-Origin", "*");
+    c.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+    c.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+
+    return new Response(response.data, {
       status: 200,
       headers: {
         "Content-Type": contentType,
         "Content-Disposition": "inline",
-        "Cache-Control": "public, max-age=3600"
-      }
+        "Cache-Control": "public, max-age=3600",
+      },
     });
   } catch (error) {
     console.error(`Error processing image ${id}/${index}:`, error);
@@ -218,13 +227,13 @@ app.get("/covers/:manga-id/:cover-filename", async (c) => {
     const cachedCover = cache.getImage(cacheKey);
     if (cachedCover) {
       const contentType = cachedCover.contentType || "image/jpeg";
-      return new Response(cachedCover.data, { 
+      return new Response(cachedCover.data, {
         status: 200,
         headers: {
           "Content-Type": contentType,
           "Content-Disposition": "inline",
-          "Cache-Control": "public, max-age=86400"
-        }
+          "Cache-Control": "public, max-age=86400",
+        },
       });
     }
 
@@ -236,28 +245,37 @@ app.get("/covers/:manga-id/:cover-filename", async (c) => {
       timeout: 10000,
       headers: {
         "User-Agent": c.req.header("User-Agent") || "SuicaoDex/1.0",
-        "Referer": "https://mangadex.org/"
+        Referer: "https://mangadex.org/",
       },
     });
 
     // Xác định content type dựa vào URL hoặc header từ response
-    const contentType = response.headers['content-type'] || 
-                        (coverFilename.endsWith('.png') ? 'image/png' : 
-                         coverFilename.endsWith('.webp') ? 'image/webp' : 'image/jpeg');
-    
+    const contentType =
+      response.headers["content-type"] ||
+      (coverFilename.endsWith(".png")
+        ? "image/png"
+        : coverFilename.endsWith(".webp")
+        ? "image/webp"
+        : "image/jpeg");
+
     // Lưu vào cache cả data và content type
     cache.setImage(cacheKey, {
       data: response.data,
-      contentType: contentType
+      contentType: contentType,
     });
-    
-    return new Response(response.data, { 
+
+    c.header("Content-Type", "image/webp");
+    c.header("Access-Control-Allow-Origin", "*");
+    c.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+    c.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+
+    return new Response(response.data, {
       status: 200,
       headers: {
         "Content-Type": contentType,
         "Content-Disposition": "inline",
-        "Cache-Control": "public, max-age=86400"
-      }
+        "Cache-Control": "public, max-age=86400",
+      },
     });
   } catch (error) {
     console.error(`Error processing cover ${mangaId}/${coverFilename}:`, error);
@@ -270,7 +288,8 @@ app.all("*", async (c) => {
   try {
     const url = new URL(c.req.url);
     const targetPath = url.pathname + url.search;
-    if (targetPath === "/") return c.text("if your code works, don't touch it", 200);
+    if (targetPath === "/")
+      return c.text("if your code works, don't touch it", 200);
 
     const apiUrl = API_BASE_URL + targetPath;
     const userAgent = c.req.header("User-Agent") || "SuicaoDex/1.0";
@@ -301,6 +320,9 @@ app.all("*", async (c) => {
       status: res.status,
       headers: {
         "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
       },
     });
   } catch (error: any) {
@@ -312,4 +334,4 @@ app.all("*", async (c) => {
   }
 });
 
-export default app
+export default app;
