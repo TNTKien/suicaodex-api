@@ -270,7 +270,7 @@ app.all("*", async (c) => {
   try {
     const url = new URL(c.req.url);
     const targetPath = url.pathname + url.search;
-    if (targetPath === "/") return c.text("SuicaoDex API Proxy", 200);
+    if (targetPath === "/") return c.text("if your code works, don't touch it", 200);
 
     const apiUrl = API_BASE_URL + targetPath;
     const userAgent = c.req.header("User-Agent") || "SuicaoDex/1.0";
