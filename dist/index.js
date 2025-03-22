@@ -1,8 +1,10 @@
+import { createRequire as _createRequire } from "module";
+const __require = _createRequire(import.meta.url);
 import { Hono } from "hono";
 import { serve } from '@hono/node-server';
 import { serveStatic } from '@hono/node-server/serve-static';
 import axios from "axios";
-import sharp from "sharp";
+const sharp = __require("sharp");
 // Cấu hình sharp
 sharp.concurrency(1);
 const app = new Hono();

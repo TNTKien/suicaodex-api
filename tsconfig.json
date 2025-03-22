@@ -1,16 +1,22 @@
+// {
+//   "compilerOptions": {
+//     "target": "ES2022",
+//     "module": "NodeNext",
+//     "moduleResolution": "NodeNext",
+//     "esModuleInterop": true,
+//     "strict": true,
+//     "outDir": "dist",
+//     "skipLibCheck": true,
+//     "forceConsistentCasingInFileNames": true
+//   },
+//   // "include": ["src/**/*"],
+//   "exclude": ["node_modules"]
+// }
+
 {
   "compilerOptions": {
-    "target": "ESNext",
-    "module": "NodeNext",
     "strict": true,
-    "verbatimModuleSyntax": true,
-    "skipLibCheck": true,
-    "types": [
-      "node"
-    ],
     "jsx": "react-jsx",
-    "jsxImportSource": "hono/jsx",
-    "outDir": "./dist"
-  },
-  "exclude": ["node_modules"]
+    "jsxImportSource": "hono/jsx"
+  }
 }

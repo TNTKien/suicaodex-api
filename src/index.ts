@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { serve } from '@hono/node-server';
 import { serveStatic } from '@hono/node-server/serve-static'
 import axios from "axios";
-import sharp from "sharp";
+import sharp = require("sharp");
 
 // Cấu hình sharp
 sharp.concurrency(1);
