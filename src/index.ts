@@ -52,12 +52,6 @@ const CACHE_TTL = 5 * 60 * 1000; // 5 phút
 function setCacheWithTTL(key: any, value: any) {
   const expiration = Date.now() + CACHE_TTL;
   chapterCache.set(key, { value, expiration });
-
-  setTimeout(() => {
-    if (chapterCache.get(key)?.expiration <= Date.now()) {
-      chapterCache.delete(key);
-    }
-  }, CACHE_TTL);
 }
 
 function getCache(key: any) {
@@ -70,14 +64,22 @@ function getCache(key: any) {
   return null;
 }
 
-setInterval(() => {
+let requestCounter = 0;
+const CLEANUP_INTERVAL = 100; 
+
+function cleanupCache() {
+  requestCounter++;
+  if (requestCounter % CLEANUP_INTERVAL !== 0) {
+    return;
+  }
+  
   const now = Date.now();
   for (const [key, value] of chapterCache.entries()) {
     if (value.expiration <= now) {
       chapterCache.delete(key);
     }
   }
-}, 10 * 60 * 1000);
+}
 
 // headers
 app.use("*", async (c, next) => {
@@ -107,6 +109,8 @@ app.use("*", (c, next) => {
 });
 
 app.get("/ch/:id", async (c) => {
+  cleanupCache();
+  
   const id = c.req.param("id");
   const useDataSaver = c.req.query("dataSaver") === "true";
   
@@ -164,6 +168,8 @@ app.get("/ch/:id", async (c) => {
 });
 
 app.get("/images/:id/:index", async (c) => {
+  cleanupCache();
+  
   const id = c.req.param("id");
   const index = parseInt(c.req.param("index"));
   const useDataSaver = c.req.query("dataSaver") === "true";
