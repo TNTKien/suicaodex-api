@@ -46,68 +46,7 @@ sharp.concurrency(1);
 var app = new hono_1.Hono();
 var API_BASE_URL = "https://api.mangadex.org";
 var COVER_URL = "https://mangadex.org/covers";
-// Cache đơn giản với cơ chế tự động dọn dẹp
-var SimpleCache = /** @class */ (function () {
-    function SimpleCache() {
-        var _this = this;
-        this.chapterCache = new Map();
-        this.imageCache = new Map();
-        this.CHAPTER_TTL = 10 * 60 * 1000; // 10 phút
-        this.IMAGE_TTL = 30 * 60 * 1000; // 30 phút
-        // Dọn dẹp cache mỗi 10 phút
-        setInterval(function () { return _this.cleanup(); }, 10 * 60 * 1000);
-    }
-    SimpleCache.prototype.setChapter = function (key, value) {
-        this.chapterCache.set(key, {
-            data: value,
-            expiry: Date.now() + this.CHAPTER_TTL,
-        });
-    };
-    SimpleCache.prototype.getChapter = function (key) {
-        var item = this.chapterCache.get(key);
-        if (!item)
-            return null;
-        if (item.expiry < Date.now()) {
-            this.chapterCache.delete(key);
-            return null;
-        }
-        return item.data;
-    };
-    SimpleCache.prototype.setImage = function (key, value) {
-        this.imageCache.set(key, {
-            data: value,
-            expiry: Date.now() + this.IMAGE_TTL,
-        });
-    };
-    SimpleCache.prototype.getImage = function (key) {
-        var item = this.imageCache.get(key);
-        if (!item)
-            return null;
-        if (item.expiry < Date.now()) {
-            this.imageCache.delete(key);
-            return null;
-        }
-        return item.data;
-    };
-    SimpleCache.prototype.cleanup = function () {
-        var _this = this;
-        var now = Date.now();
-        // Replace Map.entries() iteration with forEach to avoid downlevelIteration issues
-        this.chapterCache.forEach(function (item, key) {
-            if (item.expiry < now)
-                _this.chapterCache.delete(key);
-        });
-        this.imageCache.forEach(function (item, key) {
-            if (item.expiry < now)
-                _this.imageCache.delete(key);
-        });
-    };
-    return SimpleCache;
-}());
-var cache = new SimpleCache();
-// Middleware và các route xử lý
 app.use("/favicon.ico", (0, serve_static_1.serveStatic)({ path: "./favicon.ico" }));
-// Kiểm tra headers
 app.use("*", function (c, next) { return __awaiter(void 0, void 0, void 0, function () {
     var viaHeader, userAgent;
     return __generator(this, function (_a) {
@@ -133,180 +72,126 @@ app.use("*", function (c, next) {
     c.header("Access-Control-Allow-Headers", "Content-Type,Authorization");
     return next();
 });
-// Lấy thông tin chapter
 app.get("/ch/:id", function (c) { return __awaiter(void 0, void 0, void 0, function () {
-    var id, atHomeAPIUrl, links, response, serverData, baseUrl_1, hash_1, fileNames, proxiedLinks, error_1;
+    var id, useDataSaver, atHomeAPIUrl, serverData, fileNames, proxiedLinks, error_1;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
                 id = c.req.param("id");
+                useDataSaver = c.req.query("dataSaver") === "true";
                 atHomeAPIUrl = "".concat(API_BASE_URL, "/at-home/server/").concat(id);
                 _a.label = 1;
             case 1:
-                _a.trys.push([1, 4, , 5]);
-                links = cache.getChapter(id);
-                if (!!links) return [3 /*break*/, 3];
+                _a.trys.push([1, 3, , 4]);
                 return [4 /*yield*/, axios_1.default.get(atHomeAPIUrl, {
                         headers: {
                             "User-Agent": c.req.header("User-Agent") || "SuicaoDex/1.0",
                         },
-                        timeout: 10000,
                     })];
             case 2:
-                response = _a.sent();
-                serverData = response.data;
-                baseUrl_1 = serverData.baseUrl;
-                hash_1 = serverData.chapter.hash;
-                fileNames = serverData.chapter.data;
-                links = fileNames.map(function (fileName) { return "".concat(baseUrl_1, "/data/").concat(hash_1, "/").concat(fileName); });
-                cache.setChapter(id, links);
-                _a.label = 3;
-            case 3:
-                proxiedLinks = links.map(function (_, index) { return "images/".concat(id, "/").concat(index); });
+                serverData = (_a.sent()).data;
+                fileNames = useDataSaver
+                    ? Object.values(serverData.chapter.dataSaver)
+                    : Object.values(serverData.chapter.data);
+                proxiedLinks = fileNames.map(function (_, index) {
+                    return "images/".concat(id, "/").concat(index).concat(useDataSaver ? "?dataSaver=true" : "");
+                });
                 return [2 /*return*/, c.json({
                         chapterID: id,
                         images: proxiedLinks,
+                        usingDataSaver: useDataSaver,
                     }, 200)];
-            case 4:
+            case 3:
                 error_1 = _a.sent();
-                console.error("Error fetching chapter:", error_1);
-                return [2 /*return*/, c.text("Failed to fetch chapter data", 500)];
-            case 5: return [2 /*return*/];
+                console.error(error_1);
+                return [2 /*return*/, c.text("Internal Server Error", 500)];
+            case 4: return [2 /*return*/];
         }
     });
 }); });
-// Lấy và chuyển đổi hình ảnh chapter
 app.get("/images/:id/:index", function (c) { return __awaiter(void 0, void 0, void 0, function () {
-    var id, index, cacheKey, cachedImage, links, imageUrl, response, webpImage, error_2;
+    var id, index, useDataSaver, atHomeAPIUrl, serverData, baseUrl, hash, fileNames, currentFileName, imagePath, imageUrl, response, transformStream, error_2;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
                 id = c.req.param("id");
                 index = parseInt(c.req.param("index"));
-                cacheKey = "".concat(id, "-").concat(index);
+                useDataSaver = c.req.query("dataSaver") === "true";
                 _a.label = 1;
             case 1:
                 _a.trys.push([1, 4, , 5]);
-                cachedImage = cache.getImage(cacheKey);
-                if (cachedImage) {
-                    c.header("Content-Type", "image/webp");
-                    c.header("Cache-Control", "public, max-age=3600");
-                    c.header("Content-Disposition", "inline"); // Thêm header này để trình duyệt hiển thị ảnh
-                    return [2 /*return*/, new Response(cachedImage, {
-                            status: 200,
-                            headers: {
-                                "Content-Type": "image/webp",
-                                "Content-Disposition": "inline",
-                                "Cache-Control": "public, max-age=3600"
-                            }
-                        })];
-                }
-                links = cache.getChapter(id);
-                if (!links)
-                    return [2 /*return*/, c.text("Chapter not found", 404)];
-                imageUrl = links[index];
-                if (!imageUrl)
-                    return [2 /*return*/, c.text("Image not found", 404)];
-                return [4 /*yield*/, axios_1.default.get(imageUrl, {
-                        responseType: "arraybuffer",
-                        timeout: 15000,
+                atHomeAPIUrl = "".concat(API_BASE_URL, "/at-home/server/").concat(id);
+                return [4 /*yield*/, axios_1.default.get(atHomeAPIUrl, {
                         headers: {
                             "User-Agent": c.req.header("User-Agent") || "SuicaoDex/1.0",
                         },
                     })];
             case 2:
-                response = _a.sent();
-                return [4 /*yield*/, sharp(response.data)
-                        .webp({ quality: 85 })
-                        .toBuffer()];
-            case 3:
-                webpImage = _a.sent();
-                // Lưu vào cache
-                cache.setImage(cacheKey, webpImage);
-                c.header("Content-Type", "image/webp");
-                c.header("Cache-Control", "public, max-age=3600");
-                c.header("Content-Disposition", "inline");
-                return [2 /*return*/, new Response(webpImage, {
-                        status: 200,
-                        headers: {
-                            "Content-Type": "image/webp",
-                            "Content-Disposition": "inline",
-                            "Cache-Control": "public, max-age=3600"
-                        }
+                serverData = (_a.sent()).data;
+                baseUrl = serverData.baseUrl;
+                hash = serverData.chapter.hash;
+                fileNames = useDataSaver
+                    ? Object.values(serverData.chapter.dataSaver)
+                    : Object.values(serverData.chapter.data);
+                if (index < 0 || index >= fileNames.length) {
+                    return [2 /*return*/, c.text("Image index out of range", 404)];
+                }
+                currentFileName = fileNames[index];
+                imagePath = useDataSaver ? "data-saver" : "data";
+                imageUrl = "".concat(baseUrl, "/").concat(imagePath, "/").concat(hash, "/").concat(currentFileName);
+                return [4 /*yield*/, axios_1.default.get(imageUrl, {
+                        method: "GET",
+                        responseType: "stream",
                     })];
+            case 3:
+                response = _a.sent();
+                transformStream = sharp().webp({ quality: 85 });
+                c.header("Content-Type", "image/webp");
+                c.header("Access-Control-Allow-Origin", "*");
+                c.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+                c.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+                return [2 /*return*/, new Response(response.data.pipe(transformStream), { status: 200 })];
             case 4:
                 error_2 = _a.sent();
-                console.error("Error processing image ".concat(id, "/").concat(index, ":"), error_2);
-                return [2 /*return*/, c.text("Error processing image", 500)];
+                console.error(error_2);
+                return [2 /*return*/, c.text("Internal Server Error", 500)];
             case 5: return [2 /*return*/];
         }
     });
 }); });
-// Lấy và chuyển đổi ảnh bìa
 app.get("/covers/:manga-id/:cover-filename", function (c) { return __awaiter(void 0, void 0, void 0, function () {
-    var mangaId, coverFilename, cacheKey, cachedCover, coverUrl, response, webpCover, error_3;
+    var mangaId, coverFilename, coverUrl, response, transformStream, error_3;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
                 mangaId = c.req.param("manga-id");
                 coverFilename = c.req.param("cover-filename");
-                cacheKey = "cover-".concat(mangaId, "-").concat(coverFilename);
+                coverUrl = "".concat(COVER_URL, "/").concat(mangaId, "/").concat(coverFilename);
                 _a.label = 1;
             case 1:
-                _a.trys.push([1, 4, , 5]);
-                cachedCover = cache.getImage(cacheKey);
-                if (cachedCover) {
-                    c.header("Content-Type", "image/webp");
-                    c.header("Cache-Control", "public, max-age=86400");
-                    c.header("Content-Disposition", "inline");
-                    return [2 /*return*/, new Response(cachedCover, {
-                            status: 200,
-                            headers: {
-                                "Content-Type": "image/webp",
-                                "Content-Disposition": "inline",
-                                "Cache-Control": "public, max-age=86400"
-                            }
-                        })];
-                }
-                coverUrl = "".concat(COVER_URL, "/").concat(mangaId, "/").concat(coverFilename);
+                _a.trys.push([1, 3, , 4]);
                 return [4 /*yield*/, axios_1.default.get(coverUrl, {
-                        responseType: "arraybuffer",
-                        timeout: 10000,
-                        headers: {
-                            "User-Agent": c.req.header("User-Agent") || "SuicaoDex/1.0",
-                        },
+                        method: "GET",
+                        responseType: "stream",
                     })];
             case 2:
                 response = _a.sent();
-                return [4 /*yield*/, sharp(response.data)
-                        .webp({ quality: 90 }) // Chất lượng cao hơn cho ảnh bìa
-                        .toBuffer()];
-            case 3:
-                webpCover = _a.sent();
-                // Lưu vào cache
-                cache.setImage(cacheKey, webpCover);
+                transformStream = sharp().webp({ quality: 85 });
                 c.header("Content-Type", "image/webp");
-                c.header("Cache-Control", "public, max-age=86400");
-                c.header("Content-Disposition", "inline");
-                return [2 /*return*/, new Response(webpCover, {
-                        status: 200,
-                        headers: {
-                            "Content-Type": "image/webp",
-                            "Content-Disposition": "inline",
-                            "Cache-Control": "public, max-age=86400"
-                        }
-                    })];
-            case 4:
+                c.header("Access-Control-Allow-Origin", "*");
+                c.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+                c.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+                return [2 /*return*/, new Response(response.data.pipe(transformStream), { status: 200 })];
+            case 3:
                 error_3 = _a.sent();
-                console.error("Error processing cover ".concat(mangaId, "/").concat(coverFilename, ":"), error_3);
-                return [2 /*return*/, c.text("Error processing cover image", 500)];
-            case 5: return [2 /*return*/];
+                console.error(error_3);
+                return [2 /*return*/, c.text("Internal Server Error", 500)];
+            case 4: return [2 /*return*/];
         }
     });
 }); });
-// Proxy tất cả các request khác tới MangaDex API
 app.all("*", function (c) { return __awaiter(void 0, void 0, void 0, function () {
-    var url, targetPath, apiUrl, userAgent, controller_1, timeoutId, res, contentType, error_4;
+    var url, targetPath, apiUrl, res, error_4;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
@@ -314,40 +199,28 @@ app.all("*", function (c) { return __awaiter(void 0, void 0, void 0, function ()
                 url = new URL(c.req.url);
                 targetPath = url.pathname + url.search;
                 if (targetPath === "/")
-                    return [2 /*return*/, c.text("SuicaoDex API Proxy", 200)];
+                    return [2 /*return*/, c.text("nothing here", 200)];
                 apiUrl = API_BASE_URL + targetPath;
-                userAgent = c.req.header("User-Agent") || "SuicaoDex/1.0";
-                controller_1 = new AbortController();
-                timeoutId = setTimeout(function () { return controller_1.abort(); }, 15000);
                 return [4 /*yield*/, fetch(apiUrl, {
                         method: c.req.method,
                         headers: {
-                            "User-Agent": userAgent,
+                            "User-Agent": c.req.header("User-Agent") || "SuicaoDex/1.0",
                         },
-                        signal: controller_1.signal,
                     })];
             case 1:
                 res = _a.sent();
-                clearTimeout(timeoutId);
-                contentType = res.headers.get("Content-Type");
-                if (contentType)
-                    c.header("Content-Type", contentType);
-                // CORS headers
-                c.header("Access-Control-Allow-Origin", "*");
-                c.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-                c.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
                 return [2 /*return*/, new Response(res.body, {
                         status: res.status,
                         headers: {
                             "Content-Type": "application/json",
+                            "Access-Control-Allow-Origin": "*",
+                            "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+                            "Access-Control-Allow-Headers": "Content-Type, Authorization",
                         },
                     })];
             case 2:
                 error_4 = _a.sent();
-                console.error("API proxy error:", error_4);
-                if (error_4.name === "AbortError") {
-                    return [2 /*return*/, c.text("Request timeout", 504)];
-                }
+                console.error(error_4);
                 return [2 /*return*/, c.text("Internal Server Error", 500)];
             case 3: return [2 /*return*/];
         }
@@ -355,7 +228,7 @@ app.all("*", function (c) { return __awaiter(void 0, void 0, void 0, function ()
 }); });
 (0, node_server_1.serve)({
     fetch: app.fetch,
-    port: 3000
+    port: 3000,
 }, function (info) {
     console.log("Server is running on http://localhost:".concat(info.port));
 });
