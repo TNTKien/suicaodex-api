@@ -204,6 +204,6 @@ app.all("*", async (c) => {
 });
 
 export default {
-  port: 3001,
+  port: 3000,
   fetch: app.fetch,
 };
