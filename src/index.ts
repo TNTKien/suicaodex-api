@@ -2,11 +2,6 @@ import { Hono } from "hono";
 import { serveStatic } from "hono/bun";
 
 import axios from "axios";
-import sharp = require("sharp");
-
-sharp.concurrency(1);
-
-// sharp.cache(false);
 
 const app = new Hono();
 
@@ -167,14 +162,21 @@ app.get("/images/:id/:index", async (c) => {
       responseType: "stream",
     });
 
-    const transformStream = sharp().webp({ lossless: true });
+    // Xác định Content-Type dựa trên phần mở rộng của file
+    const fileExt = currentFileName.split('.').pop()?.toLowerCase() || 'jpg';
+    let contentType = "image/jpeg";
+    
+    if (fileExt === "png") contentType = "image/png";
+    else if (fileExt === "webp") contentType = "image/webp";
+    else if (fileExt === "gif") contentType = "image/gif";
 
-    c.header("Content-Type", "image/webp");
+    c.header("Content-Type", contentType);
     c.header("Access-Control-Allow-Origin", "*");
     c.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
     c.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
-    return new Response(response.data.pipe(transformStream), { status: 200 });
+    // Trả về ảnh gốc không chuyển đổi
+    return new Response(response.data, { status: 200 });
   } catch (error) {
     console.error(error);
     return c.text("Internal Server Error", 500);
@@ -192,15 +194,21 @@ app.get("/covers/:manga-id/:cover-filename", async (c) => {
       responseType: "stream",
     });
 
-    const transformStream = sharp().webp({ lossless: true });
+    // Xác định Content-Type dựa trên phần mở rộng của file
+    const fileExt = coverFilename.split('.').pop()?.toLowerCase() || 'jpg';
+    let contentType = "image/jpeg";
+    
+    if (fileExt === "png") contentType = "image/png";
+    else if (fileExt === "webp") contentType = "image/webp";
+    else if (fileExt === "gif") contentType = "image/gif";
 
-    c.header("Content-Type", "image/webp");
+    c.header("Content-Type", contentType);
     c.header("Access-Control-Allow-Origin", "*");
     c.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
     c.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
-    // Pipe dữ liệu ảnh qua `sharp` và gửi trực tiếp response
-    return new Response(response.data.pipe(transformStream), { status: 200 });
+    // Trả về ảnh gốc không chuyển đổi
+    return new Response(response.data, { status: 200 });
   } catch (error) {
     console.error(error);
     return c.text("Internal Server Error", 500);
