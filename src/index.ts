@@ -69,12 +69,12 @@ app.use("*", (c, next) => {
 app.get("/ch/:id", async (c) => {
   const id = c.req.param("id");
   const useDataSaver = c.req.query("dataSaver") === "true";
-  
+
   const cacheKey = `${id}:${useDataSaver ? "saver" : "full"}`;
-  
+
   try {
     let chapterInfo = getCache(cacheKey);
-    
+
     if (!chapterInfo) {
       const atHomeAPIUrl = `${API_BASE_URL}/at-home/server/${id}`;
       const { data: serverData } = await axios.get(atHomeAPIUrl, {
@@ -82,27 +82,28 @@ app.get("/ch/:id", async (c) => {
           "User-Agent": c.req.header("User-Agent") || "SuicaoDex/1.0",
         },
       });
-      
+
       chapterInfo = {
         baseUrl: serverData.baseUrl,
         hash: serverData.chapter.hash,
-        fileNames: useDataSaver 
+        fileNames: useDataSaver
           ? Object.values(serverData.chapter.dataSaver)
-          : Object.values(serverData.chapter.data)
+          : Object.values(serverData.chapter.data),
       };
 
       setCacheWithTTL(cacheKey, chapterInfo);
     }
-    
+
     const proxiedLinks = chapterInfo.fileNames.map(
-      (_: any, index: any) => `images/${id}/${index}${useDataSaver ? "?dataSaver=true" : ""}`
+      (_: any, index: any) =>
+        `images/${id}/${index}${useDataSaver ? "?dataSaver=true" : ""}`
     );
 
     return c.json(
       {
         chapterID: id,
         images: proxiedLinks,
-        usingDataSaver: useDataSaver
+        usingDataSaver: useDataSaver,
       },
       200
     );
@@ -126,12 +127,12 @@ app.get("/images/:id/:index", async (c) => {
   const id = c.req.param("id");
   const index = parseInt(c.req.param("index"));
   const useDataSaver = c.req.query("dataSaver") === "true";
-  
+
   const cacheKey = `${id}:${useDataSaver ? "saver" : "full"}`;
 
   try {
     let chapterInfo = getCache(cacheKey);
-    
+
     if (!chapterInfo) {
       const atHomeAPIUrl = `${API_BASE_URL}/at-home/server/${id}`;
       const { data: serverData } = await axios.get(atHomeAPIUrl, {
@@ -143,20 +144,20 @@ app.get("/images/:id/:index", async (c) => {
       chapterInfo = {
         baseUrl: serverData.baseUrl,
         hash: serverData.chapter.hash,
-        fileNames: useDataSaver 
+        fileNames: useDataSaver
           ? Object.values(serverData.chapter.dataSaver)
-          : Object.values(serverData.chapter.data)
+          : Object.values(serverData.chapter.data),
       };
-      
+
       setCacheWithTTL(cacheKey, chapterInfo);
     }
-    
+
     const { baseUrl, hash, fileNames } = chapterInfo;
 
     if (index < 0 || index >= fileNames.length) {
       return c.text("Image index out of range", 404);
     }
-    
+
     const currentFileName = fileNames[index] as string;
     const imagePath = useDataSaver ? "data-saver" : "data";
     const imageUrl = `${baseUrl}/${imagePath}/${hash}/${currentFileName}`;
@@ -166,7 +167,7 @@ app.get("/images/:id/:index", async (c) => {
       responseType: "stream",
     });
 
-    const transformStream = sharp().webp({ quality: 85 });
+    const transformStream = sharp().webp({ lossless: true });
 
     c.header("Content-Type", "image/webp");
     c.header("Access-Control-Allow-Origin", "*");
@@ -190,8 +191,8 @@ app.get("/covers/:manga-id/:cover-filename", async (c) => {
       method: "GET",
       responseType: "stream",
     });
-    
-    const transformStream = sharp().webp({ quality: 85 });
+
+    const transformStream = sharp().webp({ lossless: true });
 
     c.header("Content-Type", "image/webp");
     c.header("Access-Control-Allow-Origin", "*");
