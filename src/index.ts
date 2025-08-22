@@ -1,6 +1,5 @@
 import { Hono } from "hono";
 import axios from "axios";
-import { PhotonImage } from "@cf-wasm/photon";
 
 function detectImageType(buffer: ArrayBuffer): string {
   const arr = new Uint8Array(buffer);
@@ -209,33 +208,16 @@ app.get("/images/:id/:index", async (c) => {
       responseType: "arraybuffer",
     });
 
-    if (response.data.byteLength > 10 * 1024 * 1024) {
-      const contentType = detectImageType(response.data);
+    // Xác định Content-Type dựa trên dữ liệu ảnh
+    const contentType = detectImageType(response.data);
 
-      c.header("Content-Type", contentType);
-      c.header("Access-Control-Allow-Origin", "*");
-      c.header(
-        "Access-Control-Allow-Methods",
-        "GET, POST, PUT, DELETE, OPTIONS"
-      );
-      c.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
-
-      return new Response(response.data, { status: 200 });
-    }
-
-    c.header("Content-Type", "image/webp");
+    c.header("Content-Type", contentType);
     c.header("Access-Control-Allow-Origin", "*");
     c.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
     c.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
-    const imageBytes = new Uint8Array(response.data);
-    const image = PhotonImage.new_from_byteslice(imageBytes);
-
-    const webpData = image.get_bytes_webp();
-
-    image.free();
-
-    return new Response(webpData, { status: 200 });
+    // Trả về ảnh gốc không chuyển đổi
+    return new Response(response.data, { status: 200 });
   } catch (error) {
     console.error(error);
     return c.text("Internal Server Error", 500);
@@ -257,34 +239,16 @@ app.get("/covers/:manga-id/:cover-filename", async (c) => {
       },
     });
 
-    // Check image size to prevent memory issues
-    if (response.data.byteLength > 5 * 1024 * 1024) {
-      const contentType = detectImageType(response.data);
+    // Xác định Content-Type dựa trên dữ liệu ảnh
+    const contentType = detectImageType(response.data);
 
-      c.header("Content-Type", contentType);
-      c.header("Access-Control-Allow-Origin", "*");
-      c.header(
-        "Access-Control-Allow-Methods",
-        "GET, POST, PUT, DELETE, OPTIONS"
-      );
-      c.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
-
-      return new Response(response.data, { status: 200 });
-    }
-
-    c.header("Content-Type", "image/webp");
+    c.header("Content-Type", contentType);
     c.header("Access-Control-Allow-Origin", "*");
     c.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
     c.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
-    const imageBytes = new Uint8Array(response.data);
-    const image = PhotonImage.new_from_byteslice(imageBytes);
-
-    const webpData = image.get_bytes_webp();
-
-    image.free();
-
-    return new Response(webpData, { status: 200 });
+    // Trả về ảnh gốc không chuyển đổi
+    return new Response(response.data, { status: 200 });
   } catch (error) {
     console.error(error);
     return c.text("Internal Server Error", 500);
