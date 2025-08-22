@@ -13,32 +13,7 @@ const app = new Hono();
 const API_BASE_URL = "https://api.mangadex.org";
 const COVER_URL = "https://mangadex.org/covers";
 
-// Bộ nhớ tạm với TTL
-const chapterCache = new Map();
-const CACHE_TTL = 10 * 60 * 1000; // 10 phút
-
-// Hàm thêm vào cache với TTL
-function setCacheWithTTL(key: any, value: any) {
-  const expiration = Date.now() + CACHE_TTL;
-  chapterCache.set(key, { value, expiration });
-  // Lên lịch tự động xóa sau TTL
-  setTimeout(() => {
-    if (chapterCache.get(key)?.expiration <= Date.now()) {
-      chapterCache.delete(key);
-    }
-  }, CACHE_TTL);
-}
-
-// Hàm kiểm tra cache
-function getCache(key: any) {
-  const cached = chapterCache.get(key);
-  if (cached && cached.expiration > Date.now()) {
-    return cached.value;
-  }
-  // Nếu dữ liệu hết hạn, xóa khỏi cache
-  chapterCache.delete(key);
-  return null;
-}
+// Đã loại bỏ cache URL ảnh
 
 app.use("/favicon.ico", serveStatic({ path: "./favicon.ico" }));
 
@@ -73,26 +48,24 @@ app.get("/ch/:id", async (c) => {
   const id = c.req.param("id");
   const atHomeAPIUrl = `${API_BASE_URL}/at-home/server/${id}`;
   try {
-    let links = getCache(id);
-
-    if (!links) {
-      const { data: serverData } = await axios.get(atHomeAPIUrl, {
-        headers: {
-          "User-Agent": c.req.header("User-Agent") || "SuicaoDex/1.0",
-        },
-      });
-      const baseUrl = serverData.baseUrl;
-      const hash = serverData.chapter.hash;
-      const fileNames = Object.values(serverData.chapter.data);
-      links = fileNames.map(
-        (fileName) => `${baseUrl}/data/${hash}/${fileName}`
-      );
-      setCacheWithTTL(id, links);
-    }
-
-    const proxiedLinks = links.map(
+    // Luôn lấy dữ liệu mới từ MangaDex API
+    const { data: serverData } = await axios.get(atHomeAPIUrl, {
+      headers: {
+        "User-Agent": c.req.header("User-Agent") || "SuicaoDex/1.0",
+      },
+    });
+    
+    // Lấy thông tin cần thiết
+    const baseUrl = serverData.baseUrl;
+    const hash = serverData.chapter.hash;
+    const fileNames = Object.values(serverData.chapter.data);
+    
+    // Tạo URL proxy cho client
+    const proxiedLinks = fileNames.map(
       (_: any, index: any) => `images/${id}/${index}`
     );
+
+    // Không cần lưu thông tin vào context nữa vì chúng ta sẽ luôn truy vấn trực tiếp
 
     return c.json(
       {
@@ -119,23 +92,47 @@ app.get("/ch/:id", async (c) => {
 
 app.get("/images/:id/:index", async (c) => {
   const id = c.req.param("id");
-  const index = c.req.param("index");
+  const index = parseInt(c.req.param("index"));
 
-  const links = getCache(id);
-  if (!links) return c.text("Chapter not found", 404);
-
-  const imageUrl = links[index];
-  if (!imageUrl) return c.text("Image not found", 404);
   try {
+    // Lấy dữ liệu trực tiếp từ MangaDex API
+    const atHomeAPIUrl = `${API_BASE_URL}/at-home/server/${id}`;
+    const { data: serverData } = await axios.get(atHomeAPIUrl, {
+      headers: {
+        "User-Agent": c.req.header("User-Agent") || "SuicaoDex/1.0",
+      },
+    });
+    
+    // Lấy thông tin cần thiết
+    const baseUrl = serverData.baseUrl;
+    const hash = serverData.chapter.hash;
+    const fileNames = Object.values(serverData.chapter.data);
+    
+    // Kiểm tra index hợp lệ
+    if (index < 0 || index >= fileNames.length) {
+      return c.text("Image index out of range", 404);
+    }
+    
+    // Tạo URL ảnh
+    const currentFileName = fileNames[index] as string;
+    const imageUrl = `${baseUrl}/data/${hash}/${currentFileName}`;
+    
+    // Lấy ảnh từ MangaDex
     const response = await axios.get(imageUrl, {
       method: "GET",
       responseType: "stream",
     });
 
-    // Chuyển đổi ảnh sang WebP qua stream
-    //const transformStream = sharp().webp({ quality: 85 });
-
-    c.header("Content-Type", "image/webp");
+    // Xác định Content-Type dựa trên phần mở rộng của file
+    const fileExt = currentFileName.split('.').pop()?.toLowerCase() || 'jpg';
+    let contentType = "image/jpeg";
+    
+    if (fileExt === "png") contentType = "image/png";
+    else if (fileExt === "webp") contentType = "image/webp";
+    else if (fileExt === "gif") contentType = "image/gif";
+    
+    // Thiết lập header
+    c.header("Content-Type", contentType);
     c.header("Access-Control-Allow-Origin", "*");
     c.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
     c.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
@@ -204,6 +201,6 @@ app.all("*", async (c) => {
 });
 
 export default {
-  port: 3000,
+  port: 3001,
   fetch: app.fetch,
 };
