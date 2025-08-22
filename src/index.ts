@@ -123,21 +123,17 @@ app.get("/images/:id/:index", async (c) => {
       responseType: "stream",
     });
 
-    // Xác định Content-Type dựa trên phần mở rộng của file
-    const fileExt = currentFileName.split('.').pop()?.toLowerCase() || 'jpg';
-    let contentType = "image/jpeg";
-    
-    if (fileExt === "png") contentType = "image/png";
-    else if (fileExt === "webp") contentType = "image/webp";
-    else if (fileExt === "gif") contentType = "image/gif";
+    // Chuyển đổi ảnh sang WebP qua stream
+    const transformStream = sharp().webp({ quality: 85 });
     
     // Thiết lập header
-    c.header("Content-Type", contentType);
+    c.header("Content-Type", "image/webp");
     c.header("Access-Control-Allow-Origin", "*");
     c.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
     c.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
-    return new Response(response.data, { status: 200 });
+    // Pipe dữ liệu ảnh qua `sharp` và gửi trực tiếp response
+    return new Response(response.data.pipe(transformStream), { status: 200 });
   } catch (error) {
     console.error(error);
     return c.text("Internal Server Error", 500);
