@@ -4,6 +4,7 @@
     "": {
       "name": "scd-api-clf",
       "dependencies": {
+        "@cf-wasm/photon": "^0.1.31",
         "axios": "^1.7.9",
         "hono": "^4.7.5",
       },
@@ -14,6 +15,10 @@
     },
   },
   "packages": {
+    "@cf-wasm/internals": ["@cf-wasm/internals@0.0.3", "", {}, "sha512-v6PmiQnJIrVvL2IdPg5aCqARSKw/U1JvFsms2cCt3Szx3/3EvtVVhN9MALCh6kZ2CV2fvzs3tmiYezRQ6JyqcQ=="],
+
+    "@cf-wasm/photon": ["@cf-wasm/photon@0.1.31", "", { "dependencies": { "@cf-wasm/internals": "0.0.3" } }, "sha512-czB1kvK8L1oKsBcQxNhWn5JyIlXrXF+Fd61kQSZSwxi+ol7ikqf9SPnEVQ//C3MW9bzp62eCVMetoB5+9iMsvw=="],
+
     "@cloudflare/kv-asset-handler": ["@cloudflare/kv-asset-handler@0.4.0", "", { "dependencies": { "mime": "^3.0.0" } }, "sha512-+tv3z+SPp+gqTIcImN9o0hqE9xyfQjI1XD9pL6NuKjua9B1y7mNYv0S9cP+QEbA4ppVgGZEmKOvHX5G5Ei1CVA=="],
 
     "@cloudflare/unenv-preset": ["@cloudflare/unenv-preset@2.2.0", "", { "peerDependencies": { "unenv": "2.0.0-rc.15", "workerd": "^1.20250310.0" }, "optionalPeers": ["workerd"] }, "sha512-U5/TQBjJN/HQ1JA4mzt5sTbvdT9aoucHYGbokY2JWwDkYbgoaTygYBshZpXHUo8lDppsAGdUf3pGlOc6U09HAg=="],
