@@ -46,7 +46,10 @@ app.use("*", (c, next) => {
 
 app.get("/ch/:id", async (c) => {
   const id = c.req.param("id");
+  // Mặc định không sử dụng dataSaver trừ khi có tham số dataSaver=true
+  const useDataSaver = c.req.query("dataSaver") === "true";
   const atHomeAPIUrl = `${API_BASE_URL}/at-home/server/${id}`;
+  
   try {
     // Luôn lấy dữ liệu mới từ MangaDex API
     const { data: serverData } = await axios.get(atHomeAPIUrl, {
@@ -56,21 +59,24 @@ app.get("/ch/:id", async (c) => {
     });
     
     // Lấy thông tin cần thiết
-    const baseUrl = serverData.baseUrl;
     const hash = serverData.chapter.hash;
-    const fileNames = Object.values(serverData.chapter.data);
+    
+    // Lựa chọn giữa data gốc hoặc dataSaver (phiên bản đã nén của MangaDex)
+    const fileNames = useDataSaver 
+      ? Object.values(serverData.chapter.dataSaver)
+      : Object.values(serverData.chapter.data);
     
     // Tạo URL proxy cho client
     const proxiedLinks = fileNames.map(
-      (_: any, index: any) => `images/${id}/${index}`
+      (_: any, index: any) => `images/${id}/${index}${useDataSaver ? "?dataSaver=true" : ""}`
     );
-
-    // Không cần lưu thông tin vào context nữa vì chúng ta sẽ luôn truy vấn trực tiếp
 
     return c.json(
       {
         chapterID: id,
         images: proxiedLinks,
+        // Trả về thông tin về phiên bản đang sử dụng
+        usingDataSaver: useDataSaver
       },
       200
     );
@@ -93,6 +99,8 @@ app.get("/ch/:id", async (c) => {
 app.get("/images/:id/:index", async (c) => {
   const id = c.req.param("id");
   const index = parseInt(c.req.param("index"));
+  // Mặc định không sử dụng dataSaver trừ khi có tham số dataSaver=true
+  const useDataSaver = c.req.query("dataSaver") === "true";
 
   try {
     // Lấy dữ liệu trực tiếp từ MangaDex API
@@ -104,9 +112,14 @@ app.get("/images/:id/:index", async (c) => {
     });
     
     // Lấy thông tin cần thiết
+    // Sử dụng baseUrl từ response của MangaDex thay vì API_BASE_URL
     const baseUrl = serverData.baseUrl;
     const hash = serverData.chapter.hash;
-    const fileNames = Object.values(serverData.chapter.data);
+    
+    // Lựa chọn giữa data gốc hoặc dataSaver
+    const fileNames = useDataSaver 
+      ? Object.values(serverData.chapter.dataSaver)
+      : Object.values(serverData.chapter.data);
     
     // Kiểm tra index hợp lệ
     if (index < 0 || index >= fileNames.length) {
@@ -115,7 +128,9 @@ app.get("/images/:id/:index", async (c) => {
     
     // Tạo URL ảnh
     const currentFileName = fileNames[index] as string;
-    const imageUrl = `${baseUrl}/data/${hash}/${currentFileName}`;
+    // Sử dụng đường dẫn khác nhau cho data gốc và dataSaver
+    const imagePath = useDataSaver ? "data-saver" : "data";
+    const imageUrl = `${baseUrl}/${imagePath}/${hash}/${currentFileName}`;
     
     // Lấy ảnh từ MangaDex
     const response = await axios.get(imageUrl, {
