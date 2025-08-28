@@ -291,6 +291,80 @@ app.all("/mimi/*", async (c) => {
   }
 });
 
+app.get("/proxy-image", async (c) => {
+  try {
+    // Lấy URL từ query parameter
+    const imageUrl = c.req.query("url");
+    
+    if (!imageUrl) {
+      return c.text('Missing URL parameter. Please provide a valid "url" query parameter.', 400);
+    }
+
+    // Decode URL và xử lý an toàn
+    let decodedUrl;
+    try {
+      decodedUrl = decodeURIComponent(imageUrl);
+      new URL(decodedUrl); // Kiểm tra URL có hợp lệ không
+    } catch (error) {
+      console.error('Invalid URL format:', imageUrl);
+      return c.text('Invalid URL format', 400);
+    }
+
+    // Đảm bảo URL bắt đầu với http hoặc https
+    if (!decodedUrl.startsWith('http://') && !decodedUrl.startsWith('https://')) {
+      return c.text('URL must start with http:// or https://', 400);
+    }
+
+    // Tạo ETag đơn giản từ URL
+    const cacheKey = `"${btoa(decodedUrl).slice(0, 20)}"`;
+    const etagHeader = c.req.header('if-none-match');
+    
+    // Trả về 304 Not Modified nếu ETag khớp
+    if (etagHeader && etagHeader === cacheKey) {
+      c.header('Cache-Control', 'public, max-age=86400');
+      c.header('ETag', cacheKey);
+      return c.body(null, 304);
+    }
+    
+    // Fetch ảnh từ URL gốc
+    const imageResponse = await axios.get(decodedUrl, {
+      responseType: 'arraybuffer',
+      headers: {
+        'User-Agent': c.req.header('user-agent') || 'Mozilla/5.0',
+        'Accept': 'image/*,*/*;q=0.8',
+        'Referer': new URL(decodedUrl).origin,
+        'Origin': new URL(decodedUrl).origin,
+        'If-None-Match': etagHeader || '',
+        'If-Modified-Since': c.req.header('if-modified-since') || '',
+      },
+      maxRedirects: 5,
+      timeout: 10000,
+    });
+
+    // Lấy content-type từ response headers
+    const contentType = imageResponse.headers['content-type'] || 'image/jpeg';
+    
+    // Kiểm tra xem đây có phải là ảnh không
+    if (!contentType.startsWith('image/')) {
+      return c.text('URL does not point to an image', 400);
+    }
+
+    // Trả về ảnh với headers phù hợp
+    c.header('Content-Type', contentType);
+    c.header('Cache-Control', 'public, max-age=86400');
+    c.header('Access-Control-Allow-Origin', '*');
+    c.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    c.header('Access-Control-Allow-Headers', 'Content-Type, Accept');
+    c.header('X-Proxy-Origin', new URL(decodedUrl).hostname);
+    c.header('ETag', cacheKey);
+    
+    return new Response(imageResponse.data, { status: 200 });
+  } catch (error) {
+    console.error('Error in image proxy:', error);
+    return c.text(`Internal Server Error`, 500);
+  }
+});
+
 app.all("*", async (c) => {
   try {
     const url = new URL(c.req.url);
