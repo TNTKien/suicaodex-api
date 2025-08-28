@@ -8,8 +8,6 @@ const app = new Hono();
 const MGD_BASE_URL = "https://api.mangadex.org";
 const COVER_URL = "https://mangadex.org/covers";
 
-const MIMI_BASE_URL = "https://mimihentai.com/api/v1";
-
 const chapterCache = new Map();
 const CACHE_TTL = 5 * 60 * 1000; // 5 phút
 
@@ -211,40 +209,6 @@ app.get("/covers/:manga-id/:cover-filename", async (c) => {
 
     // Trả về ảnh gốc không chuyển đổi
     return new Response(response.data, { status: 200 });
-  } catch (error) {
-    console.error(error);
-    return c.text("Internal Server Error", 500);
-  }
-});
-
-app.get("/mimi/*", async (c) => {
-  try {
-    const url = new URL(c.req.url);
-    const targetPath = url.pathname.replace("/mimi", "") + url.search;
-    if (targetPath === "/") return c.text("nothing here", 200);
-
-    const apiUrl = MIMI_BASE_URL + targetPath;
-    console.log(apiUrl);
-    const res = await fetch(apiUrl, {
-      method: c.req.method,
-      headers: {
-        ...c.req.header(),
-        "User-Agent": c.req.header("User-Agent") || "SuicaoDex/1.0",
-        "Content-Type": "application/json",
-      },
-      // body: c.req.raw.body,
-    });
-    console.log(res);
-
-    return new Response(res.body, {
-      status: res.status,
-      headers: {
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization",
-      },
-    });
   } catch (error) {
     console.error(error);
     return c.text("Internal Server Error", 500);
