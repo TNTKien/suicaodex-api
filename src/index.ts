@@ -217,23 +217,20 @@ app.get("/covers/:manga-id/:cover-filename", async (c) => {
   }
 });
 
-app.get("/mimi/*", async (c) => {
+// Handle mimihentai.com API requests
+app.all("/mimi/*", async (c) => {
   try {
     const url = new URL(c.req.url);
-    const targetPath = url.pathname.replace("/mimi", "") + url.search;
-    if (targetPath === "/") return c.text("nothing here", 200);
+    const targetPath = url.pathname.replace(/^\/mimi/, "") + url.search;
 
     const apiUrl = MIMI_BASE_URL + targetPath;
+    console.log(apiUrl);
     const res = await fetch(apiUrl, {
       method: c.req.method,
       headers: {
-        ...c.req.header(),
         "User-Agent": c.req.header("User-Agent") || "SuicaoDex/1.0",
-        "Content-Type": "application/json",
       },
-      // body: c.req.raw.body,
     });
-    // console.log(res);
 
     return new Response(res.body, {
       status: res.status,
@@ -250,6 +247,7 @@ app.get("/mimi/*", async (c) => {
   }
 });
 
+// Handle mangadex.org API requests
 app.all("*", async (c) => {
   try {
     const url = new URL(c.req.url);
