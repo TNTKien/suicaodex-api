@@ -8,6 +8,8 @@ const app = new Hono();
 const MGD_BASE_URL = "https://api.mangadex.org";
 const COVER_URL = "https://mangadex.org/covers";
 
+const MIMI_BASE_URL = "https://mimihentai.com/api/v1";
+
 const chapterCache = new Map();
 const CACHE_TTL = 5 * 60 * 1000; // 5 phút
 
@@ -222,7 +224,7 @@ app.all("/mimi/*", async (c) => {
     const targetPath = url.pathname.replace(/^\/mimi/, "") + url.search;
 
     const apiUrl = MIMI_BASE_URL + targetPath;
-    console.log(apiUrl);
+    // console.log(apiUrl);
     const res = await fetch(apiUrl, {
       method: c.req.method,
       headers: {
