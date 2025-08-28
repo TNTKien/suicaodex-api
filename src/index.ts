@@ -45,7 +45,7 @@ const app = new Hono();
 
 const API_BASE_URL = "https://api.mangadex.org";
 const COVER_URL = "https://mangadex.org/covers";
-const MIMI_BASE_URL = "https://mimihentai.com/api/v1/";
+const MIMI_BASE_URL = "https://mimihentai.com/api/v1";
 
 const chapterCache = new Map();
 const CACHE_TTL = 5 * 60 * 1000; // 5 phút
