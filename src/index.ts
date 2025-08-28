@@ -234,7 +234,7 @@ app.get("/mimi/*", async (c) => {
       },
       // body: c.req.raw.body,
     });
-    // console.log(res);
+    console.log(res);
 
     return new Response(res.body, {
       status: res.status,
