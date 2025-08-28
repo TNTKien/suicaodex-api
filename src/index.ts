@@ -5,7 +5,7 @@ import axios from "axios";
 
 const app = new Hono();
 
-const API_BASE_URL = "https://api.mangadex.org";
+const MGD_BASE_URL = "https://api.mangadex.org";
 const COVER_URL = "https://mangadex.org/covers";
 
 const MIMI_BASE_URL = "https://mimihentai.com/api/v1";
@@ -73,7 +73,7 @@ app.get("/ch/:id", async (c) => {
     let chapterInfo = getCache(cacheKey);
 
     if (!chapterInfo) {
-      const atHomeAPIUrl = `${API_BASE_URL}/at-home/server/${id}`;
+      const atHomeAPIUrl = `${MGD_BASE_URL}/at-home/server/${id}`;
       const { data: serverData } = await axios.get(atHomeAPIUrl, {
         headers: {
           "User-Agent": c.req.header("User-Agent") || "SuicaoDex/1.0",
@@ -131,7 +131,7 @@ app.get("/images/:id/:index", async (c) => {
     let chapterInfo = getCache(cacheKey);
 
     if (!chapterInfo) {
-      const atHomeAPIUrl = `${API_BASE_URL}/at-home/server/${id}`;
+      const atHomeAPIUrl = `${MGD_BASE_URL}/at-home/server/${id}`;
       const { data: serverData } = await axios.get(atHomeAPIUrl, {
         headers: {
           "User-Agent": c.req.header("User-Agent") || "SuicaoDex/1.0",
@@ -256,7 +256,7 @@ app.all("*", async (c) => {
     const targetPath = url.pathname + url.search;
     if (targetPath === "/") return c.text("nothing here", 200);
 
-    const apiUrl = API_BASE_URL + targetPath;
+    const apiUrl = MGD_BASE_URL + targetPath;
     const res = await fetch(apiUrl, {
       method: c.req.method,
       headers: {
