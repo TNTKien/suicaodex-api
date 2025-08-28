@@ -224,6 +224,7 @@ app.get("/mimi/*", async (c) => {
     if (targetPath === "/") return c.text("nothing here", 200);
 
     const apiUrl = MIMI_BASE_URL + targetPath;
+    console.log(apiUrl);
     const res = await fetch(apiUrl, {
       method: c.req.method,
       headers: {
