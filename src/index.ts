@@ -199,6 +199,9 @@ app.get("/images", async (c) => {
     // Trả về 304 Not Modified nếu ETag khớp
     if (etagHeader && etagHeader === cacheKey) {
       c.header('Cache-Control', 'public, max-age=86400');
+      c.header('Access-Control-Allow-Origin', '*');
+      c.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+      c.header('Access-Control-Allow-Headers', 'Content-Type, Accept');
       c.header('ETag', cacheKey);
       return c.body(null, 304);
     }
