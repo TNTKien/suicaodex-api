@@ -8,9 +8,19 @@ To install dependencies:
 bun install
 ```
 
-To run:
+To run dev server:
 ```sh
 bun run dev
 ```
+
+For production:
+```bash
+# Build the binary
+bun run build
+
+# Run the compiled binary
+./server
+```
+
 
 open http://localhost:3001
