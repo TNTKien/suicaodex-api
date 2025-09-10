@@ -202,6 +202,7 @@ app.get("/images", async (c) => {
       c.header('Access-Control-Allow-Origin', '*');
       c.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
       c.header('Access-Control-Allow-Headers', 'Content-Type, Accept');
+      c.header('Cross-Origin-Resource-Policy', 'cross-origin');
       c.header('ETag', cacheKey);
       return c.body(null, 304);
     }
