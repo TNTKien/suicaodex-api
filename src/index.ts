@@ -195,16 +195,20 @@ app.get("/images", async (c) => {
     // Tạo ETag đơn giản từ URL
     const cacheKey = `"${btoa(decodedUrl).slice(0, 20)}"`;
     const etagHeader = c.req.header('if-none-match');
+
+    const corsHeaders = {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Accept',
+      'Cross-Origin-Resource-Policy': 'cross-origin',
+      'Cache-Control': 'public, max-age=86400',
+      'ETag': cacheKey,
+      'X-Proxy-Origin': new URL(decodedUrl).hostname,
+    };
     
     // Trả về 304 Not Modified nếu ETag khớp
     if (etagHeader && etagHeader === cacheKey) {
-      c.header('Cache-Control', 'public, max-age=86400');
-      c.header('Access-Control-Allow-Origin', '*');
-      c.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
-      c.header('Access-Control-Allow-Headers', 'Content-Type, Accept');
-      c.header('Cross-Origin-Resource-Policy', 'cross-origin');
-      c.header('ETag', cacheKey);
-      return c.body(null, 304);
+      return new Response(null, { status: 304, headers: new Headers(corsHeaders) });
     }
     
     // Fetch ảnh từ URL gốc
@@ -231,15 +235,11 @@ app.get("/images", async (c) => {
     }
 
     // Trả về ảnh với headers phù hợp
-    c.header('Content-Type', contentType);
-    c.header('Cache-Control', 'public, max-age=86400');
-    c.header('Access-Control-Allow-Origin', '*');
-    c.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
-    c.header('Access-Control-Allow-Headers', 'Content-Type, Accept');
-    c.header('X-Proxy-Origin', new URL(decodedUrl).hostname);
-    c.header('ETag', cacheKey);
-    
-    return new Response(imageResponse.data, { status: 200 });
+    const headers = new Headers({
+      ...corsHeaders,
+      'Content-Type': contentType,
+    });
+    return new Response(imageResponse.data, { status: 200, headers });
   } catch (error) {
     console.error('Error in image proxy:', error);
     return c.text(`Internal Server Error`, 500);
