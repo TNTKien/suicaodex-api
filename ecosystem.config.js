@@ -4,7 +4,7 @@ module.exports = {
     {
       name: "suicaodex_api",
       script: "src/index.ts",
-      interpreter: "/usr/local/bin/bun",
+      interpreter: "/root/.bun/bin/bun",
       exec_mode: "fork",
       instances: 1,
       watch: false,
