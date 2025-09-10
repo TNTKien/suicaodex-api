@@ -2,7 +2,8 @@
   "name": "suicaodex-api",
   "scripts": {
     "dev": "bun run --hot src/index.ts",
-    "start": "pm2 start pm2.config.js"
+    "build": "bun build src/index.ts --compile --outfile server"
+    "start": "bun run src/index.ts",
   },
   "dependencies": {
     "axios": "^1.7.9",
