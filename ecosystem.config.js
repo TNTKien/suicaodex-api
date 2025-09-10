@@ -14,9 +14,9 @@ module.exports = {
       },
       cron_restart: "0 3 * * *",
       restart_delay: 5000,
-      out_file: "/www/wwwlogs/suicaodex_api.out.log",
-      error_file: "/www/wwwlogs/suicaodex_api.err.log",
-      merge_logs: true,
+      // out_file: "/www/wwwlogs/suicaodex_api.out.log",
+      // error_file: "/www/wwwlogs/suicaodex_api.err.log",
+      // merge_logs: true,
       time: true
     }
   ]
