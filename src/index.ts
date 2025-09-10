@@ -370,4 +370,5 @@ app.all("*", async (c) => {
 export default {
   port: 3001,
   fetch: app.fetch,
+  hostname: '0.0.0.0', // bind all interfaces
 };
